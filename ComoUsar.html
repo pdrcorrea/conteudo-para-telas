@@ -1,1 +1,467 @@
-INSERT_COMO
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Como Usar | PontoView - Adeus Pen Drive</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Google Material Symbols -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    
+    <style>
+        :root {
+            --brand-dark: #002F87;      
+            --brand-light: #78D2FF;     
+            --brand-hover: #002466;     
+            --text-dark: #0F172A;       
+            --text-muted: #64748B;      
+            --bg-light: #F8FAFC;        
+            --bg-white: #FFFFFF;
+            --whatsapp: #25D366;        
+            --whatsapp-dark: #128C7E;
+            --accent-orange: #F97316;   
+            
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.04);
+            --shadow-md: 0 10px 25px -5px rgba(0, 47, 135, 0.08), 0 8px 16px -6px rgba(0, 47, 135, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-dark);
+            background-color: var(--bg-white);
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Header Navbar */
+        header {
+            padding: 24px 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #E2E8F0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-png {
+            height: 40px;
+            width: auto;
+            display: block;
+            object-fit: contain;
+        }
+
+        .logo-slogan {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            border-left: 2px solid #E2E8F0;
+            padding-left: 10px;
+        }
+
+        /* Hero / Introdução */
+        .page-header {
+            text-align: center;
+            padding: 60px 0 40px 0;
+            background: linear-gradient(180deg, var(--bg-light) 0%, var(--bg-white) 100%);
+        }
+
+        .page-header h1 {
+            font-size: 2.8rem;
+            color: var(--brand-dark);
+            margin-bottom: 12px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .page-header p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Linha do Tempo / Passos */
+        .timeline {
+            position: relative;
+            padding: 40px 0 80px 0;
+        }
+
+        /* Linha vertical central/lateral */
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 32px;
+            height: 90%;
+            width: 4px;
+            background: #E2E8F0;
+            border-radius: 2px;
+        }
+
+        .step-block {
+            position: relative;
+            margin-bottom: 48px;
+            padding-left: 80px;
+        }
+
+        .step-icon-wrapper {
+            position: absolute;
+            top: 0;
+            left: 10px;
+            width: 48px;
+            height: 48px;
+            background: var(--brand-dark);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 47, 135, 0.2);
+            z-index: 2;
+        }
+
+        .step-icon-wrapper span {
+            font-size: 24px;
+        }
+
+        .step-content {
+            background: var(--bg-white);
+            border: 1px solid #E2E8F0;
+            padding: 32px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .step-content:hover {
+            transform: translateX(5px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--brand-light);
+        }
+
+        .step-content h2 {
+            font-size: 1.4rem;
+            color: var(--brand-dark);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .step-content p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        /* Estilos específicos para ações dentro dos passos */
+        .download-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-light);
+            border: 1px solid #CBD5E1;
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .download-btn:hover {
+            background: var(--brand-dark);
+            color: white;
+            border-color: var(--brand-dark);
+        }
+
+        .inline-links {
+            margin-top: 12px;
+        }
+
+        .btn-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--brand-dark);
+            text-decoration: none;
+            font-weight: 700;
+            border-bottom: 2px solid var(--brand-light);
+            padding-bottom: 2px;
+            transition: color 0.2s ease;
+        }
+
+        .btn-link:hover {
+            color: var(--brand-hover);
+            border-color: var(--brand-dark);
+        }
+
+        /* Card de Conclusão (Pronto!) */
+        .success-card {
+            background: linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(255,255,255,0) 100%);
+            border: 2px dashed #25D366 !important;
+        }
+
+        .success-card h2 {
+            color: #128C7E !important;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Seção de Suporte / Dúvidas */
+        .support-section {
+            background: var(--bg-light);
+            padding: 60px 0;
+            text-align: center;
+            border-top: 1px solid #E2E8F0;
+        }
+
+        .support-section h3 {
+            font-size: 1.8rem;
+            color: var(--brand-dark);
+            margin-bottom: 12px;
+        }
+
+        .support-section p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+
+        .btn-whatsapp {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background-color: var(--whatsapp);
+            color: white;
+            padding: 16px 32px;
+            border-radius: var(--radius-md);
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 8px 24px rgba(37, 211, 102, 0.25);
+            transition: all 0.3s ease;
+        }
+
+        .btn-whatsapp:hover {
+            background-color: var(--whatsapp-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(37, 211, 102, 0.35);
+        }
+
+        /* Footer */
+        footer {
+            background: #020617;
+            color: #94A3B8;
+            padding: 48px 0;
+            text-align: center;
+            border-top: 1px solid #1E293B;
+            font-weight: 500;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .page-header h1 { font-size: 2rem; }
+            .timeline::before { left: 22px; }
+            .step-block { padding-left: 56px; }
+            .step-icon-wrapper { left: 0; width: 40px; height: 40px; }
+            .step-icon-wrapper span { font-size: 20px; }
+            .logo-slogan { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navbar -->
+    <header>
+        <div class="container">
+            <a href="ConteudoParaTelas.html" class="logo-container">
+                <!-- Certifique-se de que a logo.png esteja na mesma pasta -->
+                <img src="assets/logo/pontoview-logo.png" alt="PontoView Logo" class="logo-png">
+                <span class="logo-slogan">| Conteúdo para telas</span>
+            </a>
+            <a href="ConteudoParaTelas.html" class="btn-link" style="font-size: 0.95rem; border: none;">
+                <span class="material-symbols-outlined" style="vertical-align: middle;">arrow_back</span> Voltar para Home
+            </a>
+        </div>
+    </header>
+
+    <!-- Cabeçalho da Página -->
+    <section class="page-header">
+        <div class="container">
+            <h1>Como Usar</h1>
+            <p>Veja o passo-a-passo de como usar o Adeus Pen Drive e automatizar suas telas.</p>
+        </div>
+    </section>
+
+    <!-- Linha do Tempo / Passos -->
+    <div class="container">
+        <section class="timeline">
+
+            <!-- Passo 1 -->
+            <div class="step-block">
+                <div class="step-icon-wrapper">
+                    <span class="material-symbols-outlined">download</span>
+                </div>
+                <div class="step-content">
+                    <h2>1. Faça o Download e Instale o Aplicativo</h2>
+                    <p>Baixe o player oficial para o sistema operacional correspondente ao dispositivo conectado à sua TV ou Smart TV:</p>
+                    <div class="download-badges">
+                        <a href="#" class="download-btn"><span class="material-symbols-outlined">desktop_windows</span> Windows</a>
+                        <a href="#" class="download-btn"><span class="material-symbols-outlined">adb</span> Android</a>
+                        <a href="#" class="download-btn"><span class="material-symbols-outlined">brand_awareness</span> Amazon Fire</a>
+                        <a href="#" class="download-btn"><span class="material-symbols-outlined">tv</span> Smart TV</a>
+                    </div>
+                    <p style="margin-top: 14px; font-size: 0.9rem; font-style: italic;">Depois de baixar, basta seguir as instruções padrão de instalação do seu aparelho.</p>
+                </div>
+            </div>
+
+            <!-- Passo 2 -->
+            <div class="step-block">
+                <div class="step-icon-wrapper">
+                    <span class="material-symbols-outlined">person_add</span>
+                </div>
+                <div class="step-content">
+                    <h2>2. Faça seu Cadastro ou Login</h2>
+                    <p>Acesse o nosso painel de controle administrativo na nuvem. É por lá que você irá gerenciar de forma centralizada todos os seus conteúdos informativos, programações e telas externas.</p>
+                    <div class="inline-links">
+                        <a href="#" class="btn-link">Ir para Cadastro / Login <span class="material-symbols-outlined" style="font-size: 16px;">open_in_new</span></a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 3 -->
+            <div class="step-block">
+                <div class="step-icon-wrapper">
+                    <span class="material-symbols-outlined">tv_signin</span>
+                </div>
+                <div class="step-content">
+                    <h2>3. Ative a Estação / TV</h2>
+                    <p>Após abrir o aplicativo instalado pela primeira vez na sua TV, um <strong>código de ativação exclusivo</strong> será exibido na tela.</p>
+                    <p>Entre no seu painel de controle web, navegue até a seção <strong>“TVs”</strong> e digite o código exibido para vincular e autorizar instantaneamente a transmissão da sua tela via internet.</p>
+                </div>
+            </div>
+
+            <!-- Passo 4 -->
+            <div class="step-block">
+                <div class="step-icon-wrapper">
+                    <span class="material-symbols-outlined">cloud_upload</span>
+                </div>
+                <div class="step-content">
+                    <h2>4. Envie seus Arquivos</h2>
+                    <p>Se você possuir comunicados internos, artes promocionais, fotos do ambiente, cardápios ou vídeos institucionais prontos, faça o upload deles diretamente na sua biblioteca de mídia no painel.</p>
+                </div>
+            </div>
+
+            <!-- Passo 5 -->
+            <div class="step-block">
+                <div class="step-icon-wrapper">
+                    <span class="material-symbols-outlined">playlist_add</span>
+                </div>
+                <div class="step-content">
+                    <h2>5. Crie sua Lista de Reprodução</h2>
+                    <p>Monte a grade ideal para o seu público: escolha quais os widgets automáticos de entretenimento (como clima e notícias) quer exibir, intercale com os seus arquivos próprios enviados e defina a ordem exata e o tempo de exibição de cada item.</p>
+                </div>
+            </div>
+
+            <!-- Passo 6 -->
+            <div class="step-block">
+                <div class="step-icon-wrapper">
+                    <span class="material-symbols-outlined">live_tv</span>
+                </div>
+                <div class="step-content">
+                    <h2>6. Veicule sua Lista de Reprodução</h2>
+                    <p>Vá nas configurações do dispositivo ou no painel da respectiva TV vinculada e selecione a lista de reprodução criada no passo anterior para começar a transmissão em tempo real.</p>
+                </div>
+            </div>
+
+            <!-- Passo 7 (Pronto!) -->
+            <div class="step-block">
+                <div class="step-icon-wrapper" style="background-color: #25D366;">
+                    <span class="material-symbols-outlined">celebration</span>
+                </div>
+                <div class="step-content success-card">
+                    <h2>Pronto! 😉</h2>
+                    <p>Seu sistema está ativo e configurado com sucesso. Agora você pode atualizar e gerenciar todas as suas TVs remotamente de onde estiver, de forma simples, estável e excepcional.</p>
+                </div>
+            </div>
+
+        </section>
+    </div>
+
+    <!-- Seção Tem Alguma Dúvida / Fale Conosco -->
+    <section class="support-section">
+        <div class="container">
+            <h3>Tem alguma dúvida no processo?</h3>
+            <p>Nossa equipe de suporte técnico está pronta para ajudar você a ativar suas estações agora mesmo.</p>
+            <a href="https://wa.me/5500000000000?text=Olá!+Estou+com+uma+dúvida+no+passo-a-passo+de+como+usar+o+sistema." class="btn btn-whatsapp" target="_blank">
+                <span class="material-symbols-outlined">chat</span> Fale Conosco no WhatsApp
+            </a>
+        </div>
+    </section>
+
+
+    <!-- CTA Painel -->
+    <section style="background:#F8FAFC; padding:48px 0; text-align:center;">
+        <div class="container">
+            <p style="font-size:1rem; color:#64748B; margin-bottom:16px; font-weight:500;">Já é cliente PontoView?</p>
+            <a href="PainelDeControle.html" style="display:inline-flex; align-items:center; gap:8px; background:#002F87; color:#fff; padding:14px 28px; border-radius:100px; font-weight:700; font-size:1rem; text-decoration:none; box-shadow:0 4px 16px rgba(0,47,135,0.18);">
+                <span class="material-symbols-outlined">dashboard</span> Acessar Meu Painel de Controle
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 PontoView. Todos os direitos reservados. Inteligência em Conteúdo Digital para Telas e Corporações.</p>
+            <p style="margin-top:12px; font-size:0.85rem; opacity:0.7;">
+                <a href="https://busboard.com.br/politica-de-privacidade" target="_blank" style="color:inherit; text-decoration:underline;">Política de Privacidade</a>
+                &nbsp;·&nbsp;
+                <a href="https://busboard.com.br/termos-de-uso" target="_blank" style="color:inherit; text-decoration:underline;">Termos de Uso</a>
+            </p>
+        </div>
+    </footer>
+
+</body>
+</html>
