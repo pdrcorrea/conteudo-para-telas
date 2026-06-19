@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PontoView | Painel de Controle</title>
+    <!-- Google Fonts & Icons Modernos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <style>
+        :root {
+            --pv-primary: #0066FF;       /* Azul Elétrico PontoView */
+            --pv-primary-dark: #004ECC;  
+            --pv-dark: #0F172A;          
+            --pv-accent: #10B981;        
+            --pv-bg-sidebar: #FFFFFF;   
+            --pv-bg-main: #F8FAFC;      
+            --pv-text-main: #334155;
+            --pv-text-muted: #64748B;
+            --pv-border: #E2E8F0;
+            --pv-locked-bg: #F1F5F9;
+            --pv-danger: #EF4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--pv-bg-main);
+            color: var(--pv-text-main);
+            display: flex;
+            flex-direction: column; /* Mobile-first: fluxo vertical */
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ------------------------------------
+           TOPO / BARRA DE NAVEGAÇÃO MOBILE
+        ------------------------------------ */
+        .sidebar {
+            width: 100%;
+            background-color: var(--pv-bg-sidebar);
+            border-bottom: 1px solid var(--pv-border);
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            flex-shrink: 0;
+            z-index: 1000;
+        }
+
+        .brand-area { 
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            width: 100%;
+        }
+
+        /* Espaço reservado para a logo em PNG */
+        .brand-logo-img {
+            max-width: 130px;
+            height: auto;
+            max-height: 40px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .brand-logo-fallback {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--pv-dark);
+        }
+
+        .plan-badge-selector {
+            padding: 8px 10px;
+            background: #F1F5F9;
+            border: 1px solid var(--pv-border);
+            color: var(--pv-dark);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            outline: none;
+            max-width: 170px;
+        }
+
+        .storage-box {
+            margin-top: 12px;
+            background: #F8FAFC;
+            border: 1px solid var(--pv-border);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .storage-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--pv-text-muted);
+            margin-bottom: 6px;
+        }
+        .storage-bar-bg {
+            width: 100%;
+            height: 5px;
+            background: #E2E8F0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .storage-bar-fill {
+            width: 30%;
+            height: 100%;
+            background: var(--pv-primary);
+            transition: all 0.3s ease;
+        }
+
+        /* MENU DE NAVEGAÇÃO HORIZONTAL NO MOBILE */
+        .nav-menu {
+            list-style: none;
+            margin-top: 12px;
+            display: flex;
+            gap: 4px;
+            overflow-x: auto; /* Rolagem horizontal para os botões no celular */
+            padding-bottom: 4px;
+            scrollbar-width: none; /* Oculta barra no Firefox */
+        }
+        .nav-menu::-webkit-scrollbar { display: none; } /* Oculta barra no Chrome/Safari */
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            color: var(--pv-text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 6px;
+            white-space: nowrap; /* Não quebra linha no botão */
+            transition: all 0.2s ease;
+        }
+        .nav-item:hover { background-color: #F8FAFC; color: var(--pv-primary); }
+        .nav-item.active { background-color: var(--pv-primary); color: white; }
+
+        .sidebar-footer { display: none; } /* Ocultado no mobile para poupar espaço */
+
+        /* ------------------------------------
+           CONTEÚDO PRINCIPAL
+        ------------------------------------ */
+        .main-content { 
+            flex-grow: 1; 
+            padding: 20px; 
+            overflow-y: auto; 
+        }
+        
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+        
+        .section-header h1 { 
+            font-size: 1.4rem; 
+            color: var(--pv-dark); 
+            font-weight: 800; 
+            margin-bottom: 20px; 
+        }
+
+        .card { 
+            background: white; 
+            border-radius: 12px; 
+            border: 1px solid var(--pv-border); 
+            padding: 20px; 
+            margin-bottom: 20px; 
+        }
+        .card h3 { 
+            font-size: 1.05rem; 
+            margin-bottom: 12px; 
+            color: var(--pv-dark); 
+            font-weight: 700; 
+        }
+        
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-weight: 700; margin-bottom: 6px; font-size: 0.85rem; color: var(--pv-dark); }
+
+        input[type="text"], input[type="date"], input[type="time"], select {
+            width: 100%; padding: 10px 12px; border: 1px solid var(--pv-border); border-radius: 8px; font-family: inherit; font-size: 0.9rem; outline: none;
+        }
+        input[type="text"]:focus, input[type="date"]:focus, input[type="time"]:focus, select:focus { border-color: var(--pv-primary); }
+
+        .btn-pv {
+            background-color: var(--pv-primary); color: white; border: none; padding: 12px 20px; font-weight: 700; font-size: 0.9rem; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; width: 100%; /* Botões cheios no mobile */
+        }
+        .btn-pv:hover { background-color: var(--pv-primary-dark); }
+        .btn-sub { background: none; border: none; color: var(--pv-text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .file-zone-pv { border: 2px dashed #CBD5E1; padding: 35px 15px; text-align: center; border-radius: 12px; background-color: #F8FAFC; cursor: pointer; margin-bottom: 20px; }
+
+        /* LISTAS RESPONSIVAS */
+        .uploaded-list, .campaign-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+        .list-item-row { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; padding: 14px; background: #F8FAFC; border: 1px solid var(--pv-border); border-radius: 8px; }
+        
+        @media (min-width: 480px) {
+            .list-item-row { flex-direction: row; align-items: center; justify-content: space-between; }
+        }
+        
+        .item-actions { display: flex; gap: 12px; width: 100%; justify-content: flex-end; }
+        @media (min-width: 480px) { .item-actions { width: auto; } }
+
+        /* GRIDS / COMPORTAMENTO MOBILE (COLUNA ÚNICA) */
+        .grid-two-columns { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+        }
+        
+        .scrollable-widgets-box { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        
+        .item-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: white; border: 1px solid var(--pv-border); border-radius: 10px; gap: 8px; }
+        .item-row-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .item-row-left .icon { color: var(--pv-primary); font-size: 20px; flex-shrink: 0; }
+        .item-title { font-weight: 700; font-size: 0.8rem; color: var(--pv-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .plan-tag { font-size: 0.6rem; font-weight: 800; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; flex-shrink: 0; }
+        .tag-essencial { background: #EEF2F6; color: #475569; }
+        .tag-segmentado { background: #ECFDF5; color: #047857; }
+        .tag-premium { background: #EFF6FF; color: #1D4ED8; }
+
+        .item-row.locked { background: var(--pv-locked-bg); border-style: dashed; opacity: 0.55; }
+
+        .tv-playlist-preview { background: #F1F5F9; border: 2px dashed var(--pv-border); border-radius: 12px; padding: 12px; min-height: 250px; }
+        .active-row { display: flex; align-items: center; justify-content: space-between; background: white; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--pv-border); margin-bottom: 8px; }
+
+        .checkbox-media-list { border: 1px solid var(--pv-border); border-radius: 8px; padding: 12px; max-height: 140px; overflow-y: auto; background: #F8FAFC; }
+        .checkbox-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #EDF2F7; font-size: 0.85rem; }
+
+        /* MATRIZ DE ENERGIA */
+        .matrix-days { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+        .day-box { border: 1px solid var(--pv-border); border-radius: 8px; padding: 10px 4px; text-align: center; background: white; font-weight: 700; font-size: 0.8rem; }
+        
+        .time-inputs-grid { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+
+        /* TOAST FLOATING */
+        .pv-toast { position: fixed; bottom: 20px; left: 20px; right: 20px; background-color: var(--pv-dark); color: white; padding: 14px 20px; border-radius: 10px; display: flex; align-items: center; gap: 10px; transform: translateY(200px); transition: transform 0.3s ease; z-index: 1100; font-weight: 600; font-size: 0.85rem; }
+        .pv-toast.show { transform: translateY(0); }
+
+
+        /* ------------------------------------
+           MEDIA QUERIES: DESKTOP & TABLETS
+        ------------------------------------ */
+        @media (min-width: 992px) {
+            body { flex-direction: row; }
+
+            .sidebar {
+                width: 290px;
+                height: 100vh;
+                border-right: 1px solid var(--pv-border);
+                border-bottom: none;
+                padding: 30px 20px;
+                justify-content: space-between;
+            }
+
+            .brand-area { flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 0; }
+            .brand-logo-img { max-width: 100%; max-height: 55px; margin-bottom: 10px; }
+            .plan-badge-selector { width: 100%; max-width: none; margin-top: 15px; }
+            .storage-box { margin-top: 20px; }
+
+            .nav-menu { flex-direction: column; gap: 6px; margin-top: 20px; overflow-x: visible; }
+            .nav-item { font-size: 0.95rem; padding: 12px 16px; width: 100%; }
+
+            .sidebar-footer { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; color: var(--pv-text-muted); }
+
+            .main-content { padding: 40px; }
+            .section-header h1 { font-size: 1.75rem; }
+            .card { padding: 28px; }
+            .card h3 { font-size: 1.15rem; }
+
+            .btn-pv { width: auto; }
+
+            .grid-two-columns { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 24px; }
+            .matrix-days { grid-template-columns: repeat(7, 1fr); }
+            .time-inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            
+            .pv-toast { left: auto; right: 30px; bottom: 30px; width: max-content; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR / NAVBAR TOP (RESPONSIVA) -->
+    <aside class="sidebar">
+        <div>
+            <div class="brand-area">
+                <!-- Substitua o src="assets/logo/pontoview-logo.png" pelo caminho correto da sua imagem logo quando desejar -->
+                <img src="assets/logo/pontoview-logo.png" alt="PontoView | Painel de Controle" class="brand-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="brand-logo-fallback" style="display:none; gap: 4px;">Ponto<span style="color:var(--pv-primary)">View</span></div>
+                
+                <select class="plan-badge-selector" id="planSelectorPv" onchange="applyPvPlanRestrictions()">
+                    <option value="essencial">Plano: Essencial (500MB)</option>
+                    <option value="segmentado">Plano: Segmentado (2GB)</option>
+                    <option value="premium">Plano: Premium (10GB)</option>
+                </select>
+            </div>
+
+            <div class="storage-box">
+                <div class="storage-header"><span>Nuvem PontoView</span><span id="storageTxt">150 MB / 500 MB</span></div>
+                <div class="storage-bar-bg"><div class="storage-bar-fill" id="storageBar"></div></div>
+            </div>
+            
+            <nav class="nav-menu">
+                <li><a class="nav-item active" id="btn-midias" onclick="navigatePv('midias')"><span class="material-symbols-outlined">cloud_upload</span> Mídias</a></li>
+                <li><a class="nav-item" id="btn-playlist" onclick="navigatePv('playlist')"><span class="material-symbols-outlined">view_stream</span> Grade & Widgets</a></li>
+                <li><a class="nav-item" id="btn-programacao" onclick="navigatePv('programacao')"><span class="material-symbols-outlined">calendar_today</span> Agendar</a></li>
+                <li><a class="nav-item" id="btn-funcionamento" onclick="navigatePv('funcionamento')"><span class="material-symbols-outlined">power</span> Energia</a></li>
+            </nav>
+        </div>
+        <div class="sidebar-footer"><span class="material-symbols-outlined" style="color:var(--pv-primary)">tv</span><span>Player ID: #PV-49102</span></div>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="main-content">
+
+        <!-- ABA 1: UPLOAD DE MÍDIAS -->
+        <section id="midias" class="page-section active">
+            <div class="section-header"><h1>Upload de Conteúdo</h1></div>
+            <div class="card">
+                <h3>Enviar Novas Mídias</h3>
+                <div class="file-zone-pv" onclick="document.getElementById('pv-file').click()">
+                    <span class="material-symbols-outlined" style="font-size: 38px; color: var(--pv-primary)">upload_file</span>
+                    <p style="margin-top: 10px; font-weight: 700; font-size: 0.85rem; color: var(--pv-dark)">Toque para selecionar arquivos</p>
+                    <input type="file" id="pv-file" style="display: none;" onchange="triggerUploadPv(this)">
+                </div>
+
+                <h3>Mídias Salvas no Repositório</h3>
+                <div class="uploaded-list" id="uploadedFilesContainer">
+                    <div class="list-item-row" id="file-default-1">
+                        <span style="font-weight: 600; font-size: 0.85rem;">Campanha_Abertura.jpg (150 MB)</span>
+                        <div class="item-actions">
+                            <button class="btn-sub" style="color:var(--pv-danger); font-size: 0.85rem;" onclick="deleteUploadedFile('file-default-1', 150, 'Campanha_Abertura.jpg')"><span class="material-symbols-outlined" style="font-size:18px">delete</span> Remover</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 2: ELEMENTOS E GRADE COMPLETA -->
+        <section id="playlist" class="page-section">
+            <div class="section-header"><h1>Grade de Exibição & Elementos</h1></div>
+            <div class="grid-two-columns">
+                <div>
+                    <div class="card">
+                        <h3>Biblioteca de Componentes</h3>
+                        <div class="scrollable-widgets-box">
+                            
+                            <!-- ESSENCIAIS -->
+                            <div class="item-row" data-pv-plan="essencial">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">schedule</span><div class="item-title">Hora Atual</div></div>
+                                <span class="plan-tag tag-essencial">Essencial</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Widget: Hora Atual')">Incluir</button>
+                            </div>
+                            <div class="item-row" data-pv-plan="essencial">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">partly_cloudy_day</span><div class="item-title">Previsão do Tempo</div></div>
+                                <span class="plan-tag tag-essencial">Essencial</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Widget: Previsão do Tempo')">Incluir</button>
+                            </div>
+                            <div class="item-row" data-pv-plan="essencial">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">newspaper</span><div class="item-title">Notícias Gerais</div></div>
+                                <span class="plan-tag tag-essencial">Essencial</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Widget: Notícias')">Incluir</button>
+                            </div>
+                            <div class="item-row" data-pv-plan="essencial">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">format_quote</span><div class="item-title">Frases e Pensamentos</div></div>
+                                <span class="plan-tag tag-essencial">Essencial</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Widget: Frases')">Incluir</button>
+                            </div>
+
+                            <!-- SEGMENTADOS -->
+                            <div class="item-row" data-pv-plan="segmentado">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">sports_soccer</span><div class="item-title">Camp. Brasileiro</div></div>
+                                <span class="plan-tag tag-segmentado">Segmentado</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Widget: Tabela Brasileirão')">Incluir</button>
+                            </div>
+                            <div class="item-row" data-pv-plan="segmentado">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">restaurant</span><div class="item-title">AllRecipes | Tastemade</div></div>
+                                <span class="plan-tag tag-segmentado">Segmentado</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Widget: Tastemade Gastronomia')">Incluir</button>
+                            </div>
+                            <div class="item-row" data-pv-plan="segmentado">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">attach_money</span><div class="item-title">Taxas de Câmbio</div></div>
+                                <span class="plan-tag tag-segmentado">Segmentado</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Widget: Câmbio')">Incluir</button>
+                            </div>
+                            <div class="item-row" data-pv-plan="segmentado">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">casino</span><div class="item-title">Resultados Loteria</div></div>
+                                <span class="plan-tag tag-segmentado">Segmentado</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Widget: Loteria')">Incluir</button>
+                            </div>
+                            <div class="item-row" data-pv-plan="segmentado">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">smart_display</span><div class="item-title">Vídeo do YouTube</div></div>
+                                <span class="plan-tag tag-segmentado">Segmentado</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Widget: YouTube Stream')">Incluir</button>
+                            </div>
+
+                            <!-- PREMIUM -->
+                            <div class="item-row" data-pv-plan="premium">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">bar_chart</span><div class="item-title">Power BI Integration</div></div>
+                                <span class="plan-tag tag-premium">Premium</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Dashboard: Power BI')">Incluir</button>
+                            </div>
+                            <div class="item-row" data-pv-plan="premium">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">present_to_all</span><div class="item-title">Google Slides</div></div>
+                                <span class="plan-tag tag-premium">Premium</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Apresentação: Google Slides')">Incluir</button>
+                            </div>
+                            <div class="item-row" data-pv-plan="premium">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">flight_takeoff</span><div class="item-title">Painel de Voos</div></div>
+                                <span class="plan-tag tag-premium">Premium</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Widget: Painel de Voos')">Incluir</button>
+                            </div>
+                            <div class="item-row" data-pv-plan="premium">
+                                <div class="item-row-left"><span class="material-symbols-outlined icon">directions_car</span><div class="item-title">Waze - Tráfego</div></div>
+                                <span class="plan-tag tag-premium">Premium</span>
+                                <button class="btn-pv btn-add" style="padding:6px 10px; font-size:0.7rem; width:auto;" onclick="pushToTvPlaylist('Widget: Tráfego Waze')">Incluir</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card">
+                        <h3>Loop de Transmissão da Tela</h3>
+                        <div class="tv-playlist-preview" id="pvPlaylistContainer">
+                            <div class="active-row" id="playlist-row-abertura">
+                                <div class="item-row-left" style="min-width:0;"><span class="material-symbols-outlined icon" style="color:var(--pv-primary); font-size: 20px;">image</span><div class="item-title"><strong>Campanha_Abertura.jpg</strong></div></div>
+                                <button class="btn-sub" style="color:var(--pv-danger)" onclick="document.getElementById('playlist-row-abertura').remove()"><span class="material-symbols-outlined">close</span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 3: GESTÃO E EDIÇÃO DE CAMPANHAS -->
+        <section id="programacao" class="page-section">
+            <div class="section-header"><h1>Agendamento de Campanhas</h1></div>
+            <div class="grid-two-columns">
+                <div class="card">
+                    <h3 id="campaignFormTitle">Configurar Campanhas</h3>
+                    <input type="hidden" id="editCampaignId" value="">
+                    
+                    <div class="form-group">
+                        <label>Título da Campanha</label>
+                        <input type="text" id="campaignName" placeholder="Ex: Campanha de Natal">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;" class="form-group">
+                        <div><label>Início</label><input type="date" id="campaignStart"></div>
+                        <div><label>Término</label><input type="date" id="campaignEnd"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Vincular Conteúdos</label>
+                        <div class="checkbox-media-list" id="campaignMediaChecklist">
+                            <div class="checkbox-item"><input type="checkbox" value="Campanha_Abertura.jpg" checked> <span>Campanha_Abertura.jpg</span></div>
+                            <div class="checkbox-item"><input type="checkbox" value="Widget: Previsão do Tempo"> <span>Widget: Previsão do Tempo</span></div>
+                            <div class="checkbox-item"><input type="checkbox" value="Widget: Hora Atual"> <span>Widget: Hora Atual</span></div>
+                        </div>
+                    </div>
+                    <button class="btn-pv" onclick="saveCampaign()">
+                        <span class="material-symbols-outlined">save</span> Gravar e Atualizar Tela
+                    </button>
+                </div>
+
+                <div class="card">
+                    <h3>Linhas de Agendamento Ativas</h3>
+                    <div class="campaign-list" id="campaignListContainer">
+                        <div class="list-item-row" id="camp-1" data-name="Promoção de Inverno" data-start="2026-06-20" data-end="2026-06-30">
+                            <div>
+                                <strong style="color:var(--pv-dark); font-size:0.9rem;">Promoção de Inverno</strong>
+                                <div style="font-size: 0.75rem; color: var(--pv-text-muted); margin-top: 2px;">20/06/2026 até 30/06/2026</div>
+                            </div>
+                            <div class="item-actions">
+                                <button class="btn-sub" onclick="editCampaign('camp-1')"><span class="material-symbols-outlined" style="color:var(--pv-primary)">edit</span></button>
+                                <button class="btn-sub" onclick="document.getElementById('camp-1').remove()"><span class="material-symbols-outlined" style="color:var(--pv-danger)">delete</span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 4: MATRIZ DE ENERGIA -->
+        <section id="funcionamento" class="page-section">
+            <div class="section-header"><h1>Horários de Funcionamento</h1></div>
+            <div class="card">
+                <h3>Ciclo de Ativação do Hardware</h3>
+                <p style="color:var(--pv-text-muted); font-size:0.8rem; margin-bottom: 15px;">Marque os dias de funcionamento operacional das telas.</p>
+                <div class="matrix-days">
+                    <div class="day-box"><input type="checkbox" id="d-seg" checked><br>Seg</div>
+                    <div class="day-box"><input type="checkbox" id="d-ter" checked><br>Ter</div>
+                    <div class="day-box"><input type="checkbox" id="d-qua" checked><br>Qua</div>
+                    <div class="day-box"><input type="checkbox" id="d-qui" checked><br>Qui</div>
+                    <div class="day-box"><input type="checkbox" id="d-sex" checked><br>Sex</div>
+                    <div class="day-box"><input type="checkbox" id="d-sab"><br>Sáb</div>
+                    <div class="day-box"><input type="checkbox" id="d-dom"><br>Dom</div>
+                </div>
+                <div class="time-inputs-grid">
+                    <div><label>Horário para Ligar</label><input type="time" id="powerOnTime" value="07:30"></div>
+                    <div><label>Horário para Desligar</label><input type="time" id="powerOffTime" value="19:00"></div>
+                </div>
+                <button class="btn-pv" onclick="saveEnergySettings()">
+                    <span class="material-symbols-outlined">bolt</span> Atualizar Painel
+                </button>
+                <div id="energySummary" style="margin-top: 15px; font-size: 0.8rem; color: var(--pv-text-muted); font-weight: 600;"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- NOTIFICAÇÕES FLOATING TOAST -->
+    <div id="pvToast" class="pv-toast"><span class="material-symbols-outlined" style="color: var(--pv-accent);">check_circle</span><div id="pvToastMessage">Ação registrada!</div></div>
+
+    <script>
+        let currentStorageUsed = 150; 
+
+        function navigatePv(sectionId) {
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            document.getElementById('btn-' + sectionId).classList.add('active');
+        }
+
+        function triggerUploadPv(input) {
+            if (input.files.length > 0) {
+                const plan = document.getElementById('planSelectorPv').value;
+                const weight = 150; 
+
+                if(plan === 'essencial' && (currentStorageUsed + weight) > 500) { alert("⚠️ Limite de 500MB atingido."); return; }
+                if(plan === 'segmentado' && (currentStorageUsed + weight) > 2000) { alert("⚠️ Limite de 2GB atingido."); return; }
+                if(plan === 'premium' && (currentStorageUsed + weight) > 10000) { alert("⚠️ Limite de 10GB atingido."); return; }
+
+                currentStorageUsed += weight;
+                applyPvPlanRestrictions();
+
+                const id = 'file-' + Date.now();
+                const name = input.files[0].name;
+
+                const container = document.getElementById('uploadedFilesContainer');
+                const row = document.createElement('div');
+                row.className = 'list-item-row';
+                row.id = id;
+                row.innerHTML = `<span style="font-weight:600; font-size:0.85rem;">${name} (${weight} MB)</span><div class="item-actions"><button class="btn-sub" style="color:var(--pv-danger); font-size:0.85rem;" onclick="deleteUploadedFile('${id}', ${weight}, '${name}')"><span class="material-symbols-outlined" style="font-size:18px">delete</span> Remover</button></div>`;
+                container.appendChild(row);
+
+                pushToTvPlaylist(name);
+            }
+        }
+
+        function deleteUploadedFile(id, weight, name) {
+            document.getElementById(id).remove();
+            currentStorageUsed -= weight;
+            applyPvPlanRestrictions();
+            showPvToast(`"${name}" removido.`);
+        }
+
+        function pushToTvPlaylist(name) {
+            const container = document.getElementById('pvPlaylistContainer');
+            const row = document.createElement('div');
+            const rowId = 'p-row-' + Date.now();
+            row.className = 'active-row';
+            row.id = rowId;
+            row.innerHTML = `<div class="item-row-left" style="min-width:0;"><span class="material-symbols-outlined icon" style="font-size:20px;">tab</span><div class="item-title"><strong>${name}</strong></div></div><button class="btn-sub" style="color:var(--pv-danger)" onclick="document.getElementById('${rowId}').remove()"><span class="material-symbols-outlined">close</span></button>`;
+            container.appendChild(row);
+        }
+
+        function saveCampaign() {
+            const id = document.getElementById('editCampaignId').value;
+            const name = document.getElementById('campaignName').value;
+            const start = document.getElementById('campaignStart').value;
+            const end = document.getElementById('campaignEnd').value;
+
+            if(!name || !start || !end) { alert("Preencha todos os campos."); return; }
+
+            const formattedStart = start.split('-').reverse().join('/');
+            const formattedEnd = end.split('-').reverse().join('/');
+
+            if(id) {
+                const target = document.getElementById(id);
+                target.setAttribute('data-name', name);
+                target.setAttribute('data-start', start);
+                target.setAttribute('data-end', end);
+                target.innerHTML = `<div><strong style="color:var(--pv-dark); font-size:0.9rem;">${name}</strong><div style="font-size: 0.75rem; color: var(--pv-text-muted); margin-top:2px;">${formattedStart} até ${formattedEnd}</div></div><div class="item-actions"><button class="btn-sub" onclick="editCampaign('${id}')"><span class="material-symbols-outlined" style="color:var(--pv-primary)">edit</span></button><button class="btn-sub" onclick="document.getElementById('${id}').remove()"><span class="material-symbols-outlined" style="color:var(--pv-danger)">delete</span></button></div>`;
+                document.getElementById('editCampaignId').value = "";
+                document.getElementById('campaignFormTitle').innerText = "Configurar Campanhas";
+                showPvToast("Campanha atualizada.");
+            } else {
+                const newId = 'camp-' + Date.now();
+                const container = document.getElementById('campaignListContainer');
+                const row = document.createElement('div');
+                row.className = 'list-item-row';
+                row.id = newId;
+                row.setAttribute('data-name', name);
+                row.setAttribute('data-start', start);
+                row.setAttribute('data-end', end);
+                row.innerHTML = `<div><strong style="color:var(--pv-dark); font-size:0.9rem;">${name}</strong><div style="font-size: 0.75rem; color: var(--pv-text-muted); margin-top:2px;">${formattedStart} até ${formattedEnd}</div></div><div class="item-actions"><button class="btn-sub" onclick="editCampaign('${newId}')"><span class="material-symbols-outlined" style="color:var(--pv-primary)">edit</span></button><button class="btn-sub" onclick="document.getElementById('${newId}').remove()"><span class="material-symbols-outlined" style="color:var(--pv-danger)">delete</span></button></div>`;
+                container.appendChild(row);
+                showPvToast("Nova campanha agendada!");
+            }
+
+            document.getElementById('campaignName').value = "";
+            document.getElementById('campaignStart').value = "";
+            document.getElementById('campaignEnd').value = "";
+        }
+
+        function editCampaign(id) {
+            const target = document.getElementById(id);
+            document.getElementById('editCampaignId').value = id;
+            document.getElementById('campaignName').value = target.getAttribute('data-name');
+            document.getElementById('campaignStart').value = target.getAttribute('data-start');
+            document.getElementById('campaignEnd').value = target.getAttribute('data-end');
+            document.getElementById('campaignFormTitle').innerText = "Editar Campanha";
+            showPvToast("Dados carregados no formulário.");
+        }
+
+        function saveEnergySettings() {
+            const onTime = document.getElementById('powerOnTime').value;
+            const offTime = document.getElementById('powerOffTime').value;
+            showPvToast("Configurações de energia salvas.");
+            document.getElementById('energySummary').innerText = `Ativação programada: ${onTime}h às ${offTime}h nos dias selecionados.`;
+        }
+
+        function applyPvPlanRestrictions() {
+            const plan = document.getElementById('planSelectorPv').value;
+            const bar = document.getElementById('storageBar');
+            const txt = document.getElementById('storageTxt');
+            let max = plan === 'essencial' ? 500 : plan === 'segmentado' ? 2000 : 10000;
+
+            txt.innerText = `${currentStorageUsed} MB / ${max} MB`;
+            bar.style.width = `${Math.min((currentStorageUsed / max) * 100, 100)}%`;
+
+            document.querySelectorAll('.item-row').forEach(row => {
+                const required = row.getAttribute('data-pv-plan');
+                const btn = row.querySelector('.btn-add');
+                if (plan === 'essencial' && (required === 'segmentado' || required === 'premium')) {
+                    row.classList.add('locked'); btn.disabled = true; btn.innerText = "Upgrade";
+                } else if (plan === 'segmentado' && required === 'premium') {
+                    row.classList.add('locked'); btn.disabled = true; btn.innerText = "Upgrade";
+                } else {
+                    row.classList.remove('locked'); btn.disabled = false; btn.innerText = "Incluir";
+                }
+            });
+        }
+
+        function showPvToast(msg) {
+            const toast = document.getElementById('pvToast');
+            document.getElementById('pvToastMessage').innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        window.onload = function() { applyPvPlanRestrictions(); saveEnergySettings(); };
+    </script>
+</body>
+</html>
