@@ -22,7 +22,7 @@
       <p class="pv-body" id="heroText">Buscando dados ambientais de fontes abertas.</p>
     </section>
     <section class="pv-cards pv-transition">
-      <article class="pv-card"><div class="pv-card-label">Qualidade do ar</div><div class="pv-card-value" id="aqi">--</div><div class="pv-card-note" id="aqiNote">Índice atual</div></article>
+      <article class="pv-card"><div class="pv-card-label">Energia solar local</div><div class="pv-card-value" id="solar">--</div><div class="pv-card-note" id="solarNote">NASA POWER</div></article>
       <article class="pv-card"><div class="pv-card-label">Energia renovável</div><div class="pv-card-value" id="renewable">--</div><div class="pv-card-note" id="renewableYear">Brasil</div></article>
       <article class="pv-card"><div class="pv-card-label">Área florestal</div><div class="pv-card-value" id="forest">--</div><div class="pv-card-note" id="forestYear">Brasil</div></article>
       <article class="pv-card"><div class="pv-card-label">CO₂ por habitante</div><div class="pv-card-value" id="co2">--</div><div class="pv-card-note" id="co2Year">Brasil</div></article>
@@ -33,28 +33,36 @@
 <script src="../shared/pv.js"></script>
 <script>
 const shell=document.getElementById('shell');
-const e={locationName:document.getElementById('locationName'),heroLabel:document.getElementById('heroLabel'),heroValue:document.getElementById('heroValue'),heroUnit:document.getElementById('heroUnit'),heroText:document.getElementById('heroText'),aqi:document.getElementById('aqi'),aqiNote:document.getElementById('aqiNote'),renewable:document.getElementById('renewable'),renewableYear:document.getElementById('renewableYear'),forest:document.getElementById('forest'),forestYear:document.getElementById('forestYear'),co2:document.getElementById('co2'),co2Year:document.getElementById('co2Year')};
+const e={locationName:document.getElementById('locationName'),heroLabel:document.getElementById('heroLabel'),heroValue:document.getElementById('heroValue'),heroUnit:document.getElementById('heroUnit'),heroText:document.getElementById('heroText'),solar:document.getElementById('solar'),solarNote:document.getElementById('solarNote'),renewable:document.getElementById('renewable'),renewableYear:document.getElementById('renewableYear'),forest:document.getElementById('forest'),forestYear:document.getElementById('forestYear'),co2:document.getElementById('co2'),co2Year:document.getElementById('co2Year')};
 const lat=Number(PV.qs('lat','-15.793889')),lon=Number(PV.qs('lon','-47.882778')),city=PV.qs('cidade','Brasil');
 let data={},slides=[],idx=0,timer=null;const ROTATE=22000;
 function latestWorldBank(json){const rows=Array.isArray(json)&&Array.isArray(json[1])?json[1]:[];const row=rows.find(x=>x&&x.value!==null&&x.value!==undefined);return row?{value:Number(row.value),year:row.date}:null}
-function aqiLabel(v){v=Number(v);if(!Number.isFinite(v))return 'Sem leitura';if(v<=50)return 'Boa';if(v<=100)return 'Moderada';if(v<=150)return 'Atenção';if(v<=200)return 'Ruim';return 'Muito ruim'}
+function ymd(d){return `${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}`}
+function latestSolar(json){
+  const values=json?.properties?.parameter?.ALLSKY_SFC_SW_DWN||{};
+  const rows=Object.entries(values).filter(([,v])=>Number.isFinite(Number(v))&&Number(v)>-900).sort((a,b)=>b[0].localeCompare(a[0]));
+  if(!rows.length)return null;
+  const [date,value]=rows[0];
+  return {value:Number(value),date:`${date.slice(6,8)}/${date.slice(4,6)}/${date.slice(0,4)}`};
+}
 async function directData(){
-  const airUrl=`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=us_aqi,pm2_5,pm10&timezone=auto`;
+  const end=new Date();end.setUTCDate(end.getUTCDate()-1);const start=new Date(end);start.setUTCDate(start.getUTCDate()-9);
+  const solarUrl=`https://power.larc.nasa.gov/api/temporal/daily/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude=${encodeURIComponent(lon)}&latitude=${encodeURIComponent(lat)}&start=${ymd(start)}&end=${ymd(end)}&format=JSON`;
   const base='https://api.worldbank.org/v2/country/BR/indicator/';
-  const requests=[PV.fetchJSON(airUrl),PV.fetchJSON(base+'EG.FEC.RNEW.ZS?format=json&per_page=12'),PV.fetchJSON(base+'AG.LND.FRST.ZS?format=json&per_page=12'),PV.fetchJSON(base+'EN.ATM.CO2E.PC?format=json&per_page=12')];
-  const [air,ren,forest,co2]=await Promise.allSettled(requests);
-  return {location:city,air:air.status==='fulfilled'?air.value.current||{}:{},renewable:ren.status==='fulfilled'?latestWorldBank(ren.value):null,forest:forest.status==='fulfilled'?latestWorldBank(forest.value):null,co2:co2.status==='fulfilled'?latestWorldBank(co2.value):null};
+  const requests=[PV.fetchJSON(solarUrl),PV.fetchJSON(base+'EG.FEC.RNEW.ZS?format=json&per_page=12'),PV.fetchJSON(base+'AG.LND.FRST.ZS?format=json&per_page=12'),PV.fetchJSON(base+'EN.ATM.CO2E.PC?format=json&per_page=12')];
+  const [solar,ren,forest,co2]=await Promise.allSettled(requests);
+  return {location:city,solar:solar.status==='fulfilled'?latestSolar(solar.value):null,renewable:ren.status==='fulfilled'?latestWorldBank(ren.value):null,forest:forest.status==='fulfilled'?latestWorldBank(forest.value):null,co2:co2.status==='fulfilled'?latestWorldBank(co2.value):null};
 }
 function buildSlides(){
-  slides=[];const a=Number(data.air?.us_aqi);
-  if(Number.isFinite(a))slides.push({label:'Qualidade do ar',value:Math.round(a),unit:'AQI',text:`Condição ${aqiLabel(a).toLowerCase()} na localização configurada. PM2,5: ${Number.isFinite(Number(data.air?.pm2_5))?PV.formatNumber(data.air.pm2_5,1)+' µg/m³':'sem leitura'}.`});
+  slides=[];
+  if(data.solar)slides.push({label:'Energia solar na localização',value:PV.formatNumber(data.solar.value,2),unit:'kWh/m²/dia',text:`Radiação solar diária mais recente disponível para ${city}. Referência: ${data.solar.date}.`});
   if(data.renewable)slides.push({label:'Energia renovável no Brasil',value:PV.formatNumber(data.renewable.value,1),unit:'%',text:`Participação de fontes renováveis no consumo final de energia. Dado de ${data.renewable.year}.`});
   if(data.forest)slides.push({label:'Área florestal no Brasil',value:PV.formatNumber(data.forest.value,1),unit:'%',text:`Percentual da área terrestre classificada como floresta. Dado de ${data.forest.year}.`});
   if(data.co2)slides.push({label:'Emissões de CO₂ no Brasil',value:PV.formatNumber(data.co2.value,2),unit:'t por pessoa',text:`Emissões anuais de dióxido de carbono por habitante. Dado de ${data.co2.year}.`});
   if(!slides.length)slides.push({label:'Atitude sustentável',value:'Menos',unit:'desperdício',text:'Economizar água, energia e materiais reduz impactos e torna os ambientes mais eficientes.'});
 }
 function updateCards(){
-  const a=Number(data.air?.us_aqi);e.aqi.textContent=Number.isFinite(a)?Math.round(a):'--';e.aqiNote.textContent=aqiLabel(a);
+  e.solar.textContent=data.solar?PV.formatNumber(data.solar.value,2):'--';e.solarNote.textContent=data.solar?`kWh/m²/dia • ${data.solar.date}`:'NASA POWER';
   e.renewable.textContent=data.renewable?PV.formatNumber(data.renewable.value,1)+'%':'--';e.renewableYear.textContent=data.renewable?`Brasil • ${data.renewable.year}`:'Brasil';
   e.forest.textContent=data.forest?PV.formatNumber(data.forest.value,1)+'%':'--';e.forestYear.textContent=data.forest?`Brasil • ${data.forest.year}`:'Brasil';
   e.co2.textContent=data.co2?PV.formatNumber(data.co2.value,2):'--';e.co2Year.textContent=data.co2?`t/pessoa • ${data.co2.year}`:'Brasil';
@@ -64,9 +72,9 @@ function schedule(){clearTimeout(timer);timer=setTimeout(step,ROTATE)}
 async function step(){if(!slides.length)return;await PV.transition(shell,async()=>renderHero(slides[idx++%slides.length]));schedule()}
 async function load(){
   e.locationName.textContent=city;
-  try{const path=`/api/sustentabilidade?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&cidade=${encodeURIComponent(city)}`;data=await PV.fromApi(path,directData)}catch{data={location:city,air:{},renewable:null,forest:null,co2:null}}
+  try{const path=`/api/sustentabilidade?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&cidade=${encodeURIComponent(city)}`;data=await PV.fromApi(path,directData)}catch{data={location:city,solar:null,renewable:null,forest:null,co2:null}}
   buildSlides();updateCards();idx=0;renderHero(slides[idx++%slides.length]);shell.classList.add('is-entering');schedule();
 }
-load();setInterval(async()=>{try{const path=`/api/sustentabilidade?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&cidade=${encodeURIComponent(city)}`;data=await PV.fromApi(path,directData);buildSlides();updateCards()}catch{}},30*60*1000);
+load();setInterval(async()=>{try{const path=`/api/sustentabilidade?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&cidade=${encodeURIComponent(city)}`;data=await PV.fromApi(path,directData);buildSlides();updateCards()}catch{}},6*60*60*1000);
 </script>
 </body></html>
