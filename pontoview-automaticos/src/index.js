@@ -13,8 +13,34 @@ const CORS = {
   "content-type":"application/json; charset=utf-8"
 };
 
-function json(data, status = 200, cache = "public, max-age=180, s-maxage=300"){
-  return new Response(JSON.stringify(data), { status, headers:{...CORS,"cache-control":cache} });
+const TTL = {
+  hoje:3600,
+  curiosidades:21600,
+  cultura:43200,
+  economia:180,
+  sustentabilidade:21600,
+  noticias:300,
+  saude:21600,
+  tempo:600
+};
+
+function json(data, status = 200, cache = "public, max-age=180, s-maxage=300", extraHeaders = {}){
+  return new Response(JSON.stringify(data), { status, headers:{...CORS,"cache-control":cache,...extraHeaders} });
+}
+
+async function cachedEndpoint(request, ctx, ttl, producer){
+  const cache = caches.default;
+  const key = new Request(request.url, {method:"GET"});
+  const hit = await cache.match(key);
+  if(hit){
+    const headers = new Headers(hit.headers);
+    headers.set("x-pontoview-cache","HIT");
+    return new Response(hit.body,{status:hit.status,statusText:hit.statusText,headers});
+  }
+  const data = await producer();
+  const response = json(data,200,`public, max-age=${ttl}, s-maxage=${ttl}`,{"x-pontoview-cache":"MISS"});
+  ctx.waitUntil(cache.put(key,response.clone()));
+  return response;
 }
 
 async function fetchJSON(url, timeout = 9000, ttl = 300){
@@ -23,7 +49,7 @@ async function fetchJSON(url, timeout = 9000, ttl = 300){
   try{
     const res = await fetch(url, {
       signal:ctrl.signal,
-      headers:{"user-agent":"PontoView-Content/1.1 (+https://pontoview.com.br)","accept":"application/json,*/*"},
+      headers:{"user-agent":"PontoView-Content/1.2 (+https://pontoview.com.br)","accept":"application/json,*/*"},
       cf:{cacheTtl:ttl,cacheEverything:true}
     });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -104,9 +130,7 @@ function ymd(date){
 
 function latestSolar(jsonData){
   const values = jsonData?.properties?.parameter?.ALLSKY_SFC_SW_DWN || {};
-  const rows = Object.entries(values)
-    .filter(([,value]) => Number.isFinite(Number(value)) && Number(value) > -900)
-    .sort((a,b) => b[0].localeCompare(a[0]));
+  const rows = Object.entries(values).filter(([,value]) => Number.isFinite(Number(value)) && Number(value) > -900).sort((a,b) => b[0].localeCompare(a[0]));
   if(!rows.length) return null;
   const [date,value] = rows[0];
   return {value:Number(value),date:`${date.slice(6,8)}/${date.slice(4,6)}/${date.slice(0,4)}`};
@@ -165,21 +189,21 @@ async function getTempo(url){
 }
 
 export default {
-  async fetch(request){
+  async fetch(request, env, ctx){
     const url = new URL(request.url);
     if(request.method === "OPTIONS") return new Response(null,{status:204,headers:CORS});
     if(request.method !== "GET") return json({ok:false,error:"Method not allowed"},405,"no-store");
     try{
-      if(url.pathname === "/api/hoje") return json(await getHoje());
-      if(url.pathname === "/api/curiosidades") return json(await getCuriosidades());
-      if(url.pathname === "/api/cultura") return json(await getCultura());
-      if(url.pathname === "/api/economia") return json(await getEconomia());
-      if(url.pathname === "/api/sustentabilidade") return json(await getSustentabilidade(url));
-      if(url.pathname === "/api/noticias") return json(await getNoticias());
-      if(url.pathname === "/api/saude") return json(await getSaude());
-      if(url.pathname === "/api/tempo") return json(await getTempo(url));
-      if(url.pathname === "/health") return json({ok:true,service:"PontoView Automatic Content API",endpoints:["/api/hoje","/api/curiosidades","/api/cultura","/api/economia","/api/sustentabilidade","/api/noticias","/api/saude","/api/tempo"]});
-      return json({ok:true,service:"PontoView Automatic Content API",health:"/health"});
+      if(url.pathname === "/api/hoje") return cachedEndpoint(request,ctx,TTL.hoje,getHoje);
+      if(url.pathname === "/api/curiosidades") return cachedEndpoint(request,ctx,TTL.curiosidades,getCuriosidades);
+      if(url.pathname === "/api/cultura") return cachedEndpoint(request,ctx,TTL.cultura,getCultura);
+      if(url.pathname === "/api/economia") return cachedEndpoint(request,ctx,TTL.economia,getEconomia);
+      if(url.pathname === "/api/sustentabilidade") return cachedEndpoint(request,ctx,TTL.sustentabilidade,()=>getSustentabilidade(url));
+      if(url.pathname === "/api/noticias") return cachedEndpoint(request,ctx,TTL.noticias,getNoticias);
+      if(url.pathname === "/api/saude") return cachedEndpoint(request,ctx,TTL.saude,getSaude);
+      if(url.pathname === "/api/tempo") return cachedEndpoint(request,ctx,TTL.tempo,()=>getTempo(url));
+      if(url.pathname === "/health") return json({ok:true,service:"PontoView Automatic Content API",cache:"Cloudflare Cache API",endpoints:["/api/hoje","/api/curiosidades","/api/cultura","/api/economia","/api/sustentabilidade","/api/noticias","/api/saude","/api/tempo"]},200,"no-store");
+      return json({ok:true,service:"PontoView Automatic Content API",health:"/health"},200,"no-store");
     }catch(error){
       return json({ok:false,error:error instanceof Error?error.message:"Unexpected error"},500,"no-store");
     }
