@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PontoView • Economia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24..48,300..700,0,0" rel="stylesheet">
+<link rel="stylesheet" href="../shared/pontoview.css">
+<style>
+.change{display:inline-flex;align-items:center;gap:6px;margin-top:18px;font-size:clamp(14px,1.15vw,18px);font-weight:650;color:var(--pv-soft)}
+.change.up{color:#9ff0cf}.change.down{color:#ffc2c2}.change .material-symbols-outlined{font-size:20px}
+.money{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="pv-ambient" aria-hidden="true"></div>
+<div class="pv-shell" id="shell">
+  <header class="pv-header">
+    <div class="pv-brand"><div class="pv-badge"><span class="material-symbols-outlined">monitoring</span></div><div class="pv-title">Economia</div></div>
+    <div class="pv-source"><span class="material-symbols-outlined">sync</span><span id="updated">Dados públicos</span></div>
+  </header>
+  <main class="pv-stage">
+    <section class="pv-copy pv-transition">
+      <div class="pv-kicker" id="heroLabel">Cotação</div>
+      <h1 class="pv-headline money" id="heroValue">Atualizando...</h1>
+      <p class="pv-body" id="heroName">Buscando indicadores econômicos</p>
+      <div class="change" id="heroChange"><span class="material-symbols-outlined">remove</span><span>Sem variação disponível</span></div>
+    </section>
+    <section class="pv-cards pv-transition">
+      <article class="pv-card"><div class="pv-card-label">Dólar</div><div class="pv-card-value money" id="usd">--</div><div class="pv-card-note" id="usdNote">USD / BRL</div></article>
+      <article class="pv-card"><div class="pv-card-label">Euro</div><div class="pv-card-value money" id="eur">--</div><div class="pv-card-note" id="eurNote">EUR / BRL</div></article>
+      <article class="pv-card"><div class="pv-card-label">Selic</div><div class="pv-card-value" id="selic">--</div><div class="pv-card-note">Taxa oficial</div></article>
+      <article class="pv-card"><div class="pv-card-label">IPCA</div><div class="pv-card-value" id="ipca">--</div><div class="pv-card-note">Índice oficial disponível</div></article>
+    </section>
+  </main>
+  <footer class="pv-footer"><img src="../../assets/logo/pontoview-logo-white.png" alt="PontoView"></footer>
+</div>
+<script src="../shared/pv.js"></script>
+<script>
+const shell=document.getElementById('shell');
+const el={heroLabel:document.getElementById('heroLabel'),heroValue:document.getElementById('heroValue'),heroName:document.getElementById('heroName'),heroChange:document.getElementById('heroChange'),usd:document.getElementById('usd'),eur:document.getElementById('eur'),selic:document.getElementById('selic'),ipca:document.getElementById('ipca'),usdNote:document.getElementById('usdNote'),eurNote:document.getElementById('eurNote'),updated:document.getElementById('updated')};
+let data={quotes:[],rates:[]},idx=0,timer=null;
+const ROTATE=18000;
+function fmt(v,d=2){return Number.isFinite(Number(v))?PV.formatNumber(Number(v),d):'--'}
+function rateBy(name){return data.rates.find(x=>String(x.nome||x.name||'').toLowerCase().includes(name))}
+async function directData(){
+  const [quotesRes,ratesRes]=await Promise.allSettled([
+    PV.fetchJSON('https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL,BTC-BRL'),
+    PV.fetchJSON('https://brasilapi.com.br/api/taxas/v1')
+  ]);
+  const q=quotesRes.status==='fulfilled'?quotesRes.value:{};
+  const quotes=[
+    q.USDBRL&&{code:'USD',label:'Dólar americano',value:Number(q.USDBRL.bid),change:Number(q.USDBRL.pctChange),updated:q.USDBRL.create_date},
+    q.EURBRL&&{code:'EUR',label:'Euro',value:Number(q.EURBRL.bid),change:Number(q.EURBRL.pctChange),updated:q.EURBRL.create_date},
+    q.BTCBRL&&{code:'BTC',label:'Bitcoin',value:Number(q.BTCBRL.bid),change:Number(q.BTCBRL.pctChange),updated:q.BTCBRL.create_date}
+  ].filter(Boolean);
+  return {quotes,rates:ratesRes.status==='fulfilled'&&Array.isArray(ratesRes.value)?ratesRes.value:[]};
+}
+function updateCards(){
+  const usd=data.quotes.find(x=>x.code==='USD'),eur=data.quotes.find(x=>x.code==='EUR');
+  el.usd.textContent=usd?'R$ '+fmt(usd.value,2):'--';el.eur.textContent=eur?'R$ '+fmt(eur.value,2):'--';
+  if(usd)el.usdNote.textContent=`${usd.change>=0?'+':''}${fmt(usd.change,2)}% no período`;if(eur)el.eurNote.textContent=`${eur.change>=0?'+':''}${fmt(eur.change,2)}% no período`;
+  const selic=rateBy('selic'),ipca=rateBy('ipca');el.selic.textContent=selic?fmt(selic.valor??selic.value,2)+'%':'--';el.ipca.textContent=ipca?fmt(ipca.valor??ipca.value,2)+'%':'--';
+}
+function renderHero(item){
+  if(!item){el.heroLabel.textContent='Economia';el.heroValue.textContent='Atualizando...';el.heroName.textContent='Novos dados em breve';el.heroChange.className='change';el.heroChange.innerHTML='<span class="material-symbols-outlined">sync</span><span>Aguardando fonte</span>';return}
+  el.heroLabel.textContent=item.code==='BTC'?'Ativo digital':'Cotação';el.heroValue.textContent='R$ '+fmt(item.value,item.code==='BTC'?0:2);el.heroName.textContent=item.label;
+  const change=Number(item.change);const cls=change>0?'up':change<0?'down':'';const icon=change>0?'trending_up':change<0?'trending_down':'remove';
+  el.heroChange.className='change '+cls;el.heroChange.innerHTML=`<span class="material-symbols-outlined">${icon}</span><span>${Number.isFinite(change)?(change>=0?'+':'')+fmt(change,2)+'%':'Variação indisponível'}</span>`;
+  if(item.updated)el.updated.textContent='Atualizado '+item.updated.slice(11,16);
+}
+async function step(){if(!data.quotes.length)return;await PV.transition(shell,async()=>{renderHero(data.quotes[idx++%data.quotes.length]);updateCards()});schedule()}
+function schedule(){clearTimeout(timer);timer=setTimeout(step,ROTATE)}
+async function load(){
+  try{data=await PV.fromApi('/api/economia',directData)}catch{data={quotes:[],rates:[]}}
+  updateCards();idx=0;renderHero(data.quotes[idx++%Math.max(1,data.quotes.length)]);shell.classList.add('is-entering');schedule();
+}
+load();setInterval(async()=>{try{const fresh=await PV.fromApi('/api/economia',directData);if(fresh)data=fresh;updateCards()}catch{}},5*60*1000);
+</script>
+</body></html>
