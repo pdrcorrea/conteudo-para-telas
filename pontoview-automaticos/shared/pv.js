@@ -20,17 +20,89 @@ window.PV = (() => {
     }
   }
 
+  function hash(text){
+    let h = 2166136261;
+    for(let i=0;i<text.length;i++){
+      h ^= text.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(36);
+  }
+
+  function storageGet(key){
+    try{
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    }catch{return null}
+  }
+
+  function storageSet(key, value){
+    try{ localStorage.setItem(key, JSON.stringify(value)); }catch{}
+  }
+
+  async function cached(key, ttlMs, loader, staleMs = ttlMs * 12){
+    const storageKey = `pv-cache:${hash(key)}`;
+    const now = Date.now();
+    const saved = storageGet(storageKey);
+    if(saved && saved.value !== undefined && now - Number(saved.at || 0) < ttlMs) return saved.value;
+    try{
+      const value = await loader();
+      storageSet(storageKey, { at:now, value });
+      return value;
+    }catch(error){
+      if(saved && saved.value !== undefined && now - Number(saved.at || 0) < staleMs) return saved.value;
+      throw error;
+    }
+  }
+
+  function ttlForPath(path){
+    if(path.startsWith("/api/noticias")) return 5 * 60 * 1000;
+    if(path.startsWith("/api/tempo")) return 10 * 60 * 1000;
+    if(path.startsWith("/api/economia")) return 3 * 60 * 1000;
+    if(path.startsWith("/api/hoje")) return 60 * 60 * 1000;
+    if(path.startsWith("/api/curiosidades")) return 6 * 60 * 60 * 1000;
+    if(path.startsWith("/api/cultura")) return 12 * 60 * 60 * 1000;
+    if(path.startsWith("/api/sustentabilidade")) return 6 * 60 * 60 * 1000;
+    if(path.startsWith("/api/saude")) return 6 * 60 * 60 * 1000;
+    return 5 * 60 * 1000;
+  }
+
+  async function cachedJSON(url, ttlMs = 5 * 60 * 1000, options = {}, timeout = 9000){
+    return cached(`url:${url}`, ttlMs, () => fetchJSON(url, options, timeout));
+  }
+
   function apiBase(){
     return qs("api", "").replace(/\/$/, "");
   }
 
-  async function fromApi(path, fallback){
+  async function fromApi(path, fallback, ttlMs = ttlForPath(path)){
     const base = apiBase();
-    if(base){
-      try{ return await fetchJSON(base + path); }catch{}
-    }
-    if(typeof fallback === "function") return await fallback();
-    throw new Error("Fonte indisponível");
+    return cached(`endpoint:${base || "direct"}:${path}`, ttlMs, async () => {
+      if(base){
+        try{ return await fetchJSON(base + path); }catch{}
+      }
+      if(typeof fallback === "function") return await fallback();
+      throw new Error("Fonte indisponível");
+    });
+  }
+
+  function signatureOf(item){
+    if(item == null) return "";
+    if(typeof item === "string") return item;
+    return String(item.link || item.url || item.id || item.title || item.text || JSON.stringify(item));
+  }
+
+  function pickForRefresh(items, key = "default", signatureFn = signatureOf){
+    const list = Array.isArray(items) ? items.filter(Boolean) : [];
+    if(!list.length) return null;
+    const storageKey = `pv-last:${key}`;
+    let last = "";
+    try{ last = localStorage.getItem(storageKey) || ""; }catch{}
+    const alternatives = list.filter(item => signatureFn(item) !== last);
+    const pool = alternatives.length ? alternatives : list;
+    const item = pool[Math.floor(Math.random() * pool.length)];
+    try{ localStorage.setItem(storageKey, signatureFn(item)); }catch{}
+    return item;
   }
 
   async function transition(shell, update, duration = 560){
@@ -79,5 +151,5 @@ window.PV = (() => {
     img.src = url;
   }
 
-  return { sleep, qs, clean, clamp, formatNumber, formatMoney, formatDate, titleCase, fetchJSON, fromApi, transition, startProgress, qrUrl, setImage };
+  return { sleep, qs, clean, clamp, formatNumber, formatMoney, formatDate, titleCase, fetchJSON, cachedJSON, cached, fromApi, pickForRefresh, transition, startProgress, qrUrl, setImage };
 })();
