@@ -23,7 +23,7 @@ async function fetchJSON(url, timeout = 9000, ttl = 300){
   try{
     const res = await fetch(url, {
       signal:ctrl.signal,
-      headers:{"user-agent":"PontoView-Content/1.0 (+https://pontoview.com.br)","accept":"application/json,*/*"},
+      headers:{"user-agent":"PontoView-Content/1.1 (+https://pontoview.com.br)","accept":"application/json,*/*"},
       cf:{cacheTtl:ttl,cacheEverything:true}
     });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -58,7 +58,7 @@ async function getCuriosidades(){
   const data = await fetchJSON(url,9000,900);
   const pages = Object.values(data?.query?.pages || {}).map(p => ({
     title:clean(p.title),
-    text:trimText(p.extract,520),
+    text:trimText(p.extract,760),
     image:p.thumbnail?.source || "",
     link:p.fullurl || "",
     topic:"Conhecimento"
@@ -68,11 +68,11 @@ async function getCuriosidades(){
 
 async function getCultura(){
   const titles = CULTURE_TOPICS.map(x=>x[0]).join("|");
-  const url = "https://pt.wikipedia.org/w/api.php?action=query&format=json&prop=extracts|pageimages|info&exintro=1&explaintext=1&piprop=thumbnail&pithumbsize=1400&inprop=url&redirects=1&origin=*&titles=" + encodeURIComponent(titles);
+  const url = "https://pt.wikipedia.org/w/api.php?action=query&format=json&prop=extracts|pageimages|info&exintro=1&explaintext=1&piprop=thumbnail&pithumbsize=1600&inprop=url&redirects=1&origin=*&titles=" + encodeURIComponent(titles);
   const data = await fetchJSON(url,9000,21600);
   const map = new Map(CULTURE_TOPICS.map(x=>[x[0].toLowerCase(),x[1]]));
   const pages = Object.values(data?.query?.pages || {}).filter(p=>!p.missing).map(p=>({
-    title:clean(p.title),text:trimText(p.extract,560),image:p.thumbnail?.source||"",link:p.fullurl||"",category:map.get(clean(p.title).toLowerCase())||"Cultura brasileira"
+    title:clean(p.title),text:trimText(p.extract,860),image:p.thumbnail?.source||"",link:p.fullurl||"",category:map.get(clean(p.title).toLowerCase())||"Cultura brasileira"
   })).filter(x=>x.title&&x.text.length>100);
   for(let i=pages.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pages[i],pages[j]]=[pages[j],pages[i]]}
   return {ok:pages.length>0,source:"Wikipédia",items:pages};
@@ -116,12 +116,8 @@ async function getSustentabilidade(url){
   const lat = Number(url.searchParams.get("lat") || -15.793889);
   const lon = Number(url.searchParams.get("lon") || -47.882778);
   const city = clean(url.searchParams.get("cidade") || "Brasil");
-
-  const end = new Date();
-  end.setUTCDate(end.getUTCDate()-1);
-  const start = new Date(end);
-  start.setUTCDate(start.getUTCDate()-9);
-
+  const end = new Date(); end.setUTCDate(end.getUTCDate()-1);
+  const start = new Date(end); start.setUTCDate(start.getUTCDate()-9);
   const solarUrl = `https://power.larc.nasa.gov/api/temporal/daily/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude=${encodeURIComponent(lon)}&latitude=${encodeURIComponent(lat)}&start=${ymd(start)}&end=${ymd(end)}&format=JSON`;
   const base = "https://api.worldbank.org/v2/country/BR/indicator/";
   const results = await Promise.allSettled([
@@ -130,15 +126,41 @@ async function getSustentabilidade(url){
     fetchJSON(base+"AG.LND.FRST.ZS?format=json&per_page=12",8500,43200),
     fetchJSON(base+"EN.ATM.CO2E.PC?format=json&per_page=12",8500,43200)
   ]);
-
   return {
-    ok:results.some(r=>r.status==="fulfilled"),
-    location:city,
+    ok:results.some(r=>r.status==="fulfilled"),location:city,
     solar:results[0].status==="fulfilled"?latestSolar(results[0].value):null,
     renewable:results[1].status==="fulfilled"?latestWorldBank(results[1].value):null,
     forest:results[2].status==="fulfilled"?latestWorldBank(results[2].value):null,
     co2:results[3].status==="fulfilled"?latestWorldBank(results[3].value):null,
     sources:["NASA POWER","World Bank"]
+  };
+}
+
+async function getNoticias(){
+  const data = await fetchJSON("https://pontoview-api.pedrhc258.workers.dev/api/news",11000,300);
+  return {...data,proxiedBy:"PontoView Automatic Content API"};
+}
+
+async function getSaude(){
+  const data = await fetchJSON("https://saude.pedrhc258.workers.dev/api/health-tips",10000,1800);
+  const items = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+  return {ok:items.length>0,items,proxiedBy:"PontoView Automatic Content API"};
+}
+
+async function getTempo(url){
+  const lat = Number(url.searchParams.get("lat") || -19.5394);
+  const lon = Number(url.searchParams.get("lon") || -40.6306);
+  const uf = clean(url.searchParams.get("uf") || "").toUpperCase();
+  const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=6`;
+  const jobs = [fetchJSON(forecastUrl,9000,600)];
+  if(uf) jobs.push(fetchJSON(`https://radarmeteorologico.com.br/api/v1/alertas?uf=${encodeURIComponent(uf)}`,9000,600));
+  const results = await Promise.allSettled(jobs);
+  if(results[0].status !== "fulfilled") throw new Error("Previsão meteorológica indisponível");
+  return {
+    ok:true,
+    weather:results[0].value,
+    alerts:results[1]?.status === "fulfilled" ? (results[1].value?.alertas || results[1].value || []) : [],
+    sources:["Open-Meteo","INMET via RadarMeteorológico"]
   };
 }
 
@@ -153,7 +175,10 @@ export default {
       if(url.pathname === "/api/cultura") return json(await getCultura());
       if(url.pathname === "/api/economia") return json(await getEconomia());
       if(url.pathname === "/api/sustentabilidade") return json(await getSustentabilidade(url));
-      if(url.pathname === "/health") return json({ok:true,service:"PontoView Automatic Content API",endpoints:["/api/hoje","/api/curiosidades","/api/cultura","/api/economia","/api/sustentabilidade"]});
+      if(url.pathname === "/api/noticias") return json(await getNoticias());
+      if(url.pathname === "/api/saude") return json(await getSaude());
+      if(url.pathname === "/api/tempo") return json(await getTempo(url));
+      if(url.pathname === "/health") return json({ok:true,service:"PontoView Automatic Content API",endpoints:["/api/hoje","/api/curiosidades","/api/cultura","/api/economia","/api/sustentabilidade","/api/noticias","/api/saude","/api/tempo"]});
       return json({ok:true,service:"PontoView Automatic Content API",health:"/health"});
     }catch(error){
       return json({ok:false,error:error instanceof Error?error.message:"Unexpected error"},500,"no-store");
