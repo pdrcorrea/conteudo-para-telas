@@ -35,8 +35,8 @@
 const shell=document.getElementById('shell');
 const els={clock:document.getElementById('clock'),weekday:document.getElementById('weekday'),dateTitle:document.getElementById('dateTitle'),todayNote:document.getElementById('todayNote'),holiday:document.getElementById('holiday'),holidayNote:document.getElementById('holidayNote'),season:document.getElementById('season'),dayOfYear:document.getElementById('dayOfYear'),daysLeft:document.getElementById('daysLeft'),nextHolidayDate:document.getElementById('nextHolidayDate'),nextHolidayName:document.getElementById('nextHolidayName')};
 let holidayCache=[];
-function iso(d){return d.toISOString().slice(0,10)}
-function dayOfYear(d){const start=new Date(d.getFullYear(),0,0);return Math.floor((d-start)/86400000)}
+function localYMD(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`}
+function dayOfYear(d){const start=Date.UTC(d.getFullYear(),0,0),current=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());return Math.floor((current-start)/86400000)}
 function season(d){const md=(d.getMonth()+1)*100+d.getDate();if(md>=1221||md<=320)return 'Verão';if(md<=620)return 'Outono';if(md<=922)return 'Inverno';return 'Primavera'}
 async function directData(){
   const now=new Date(); const year=now.getFullYear();
@@ -47,7 +47,7 @@ async function directData(){
 function render(data){
   const now=new Date(data.now||Date.now());
   holidayCache=Array.isArray(data.holidays)?data.holidays:[];
-  const today=iso(now); const todayHoliday=holidayCache.find(h=>h.date===today);
+  const today=localYMD(now); const todayHoliday=holidayCache.find(h=>h.date===today);
   const next=holidayCache.find(h=>h.date>today);
   const long=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'long',year:'numeric'}).format(now);
   els.weekday.textContent=PV.titleCase(new Intl.DateTimeFormat('pt-BR',{weekday:'long'}).format(now));
@@ -56,9 +56,9 @@ function render(data){
   els.holiday.textContent=todayHoliday?'Feriado':'Dia comum';
   els.holidayNote.textContent=todayHoliday?todayHoliday.name:'Sem feriado nacional hoje';
   els.season.textContent=season(now);
-  const doy=dayOfYear(now); const total=(new Date(now.getFullYear(),11,31)-new Date(now.getFullYear(),0,0))/86400000;
+  const doy=dayOfYear(now); const total=dayOfYear(new Date(now.getFullYear(),11,31));
   els.dayOfYear.textContent=`${doy}º dia`;
-  els.daysLeft.textContent=`${Math.max(0,Math.round(total-doy))} dias restantes no ano`;
+  els.daysLeft.textContent=`${Math.max(0,total-doy)} dias restantes no ano`;
   if(next){const d=new Date(next.date+'T12:00:00');els.nextHolidayDate.textContent=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'short'}).format(d).replace('.','');els.nextHolidayName.textContent=next.name}else{els.nextHolidayDate.textContent='Novo ano';els.nextHolidayName.textContent='Próximo calendário em breve'}
 }
 function updateClock(){els.clock.textContent=new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit'}).format(new Date())}
