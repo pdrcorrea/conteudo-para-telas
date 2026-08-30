@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PontoView • Cultura</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24..48,300..700,0,0" rel="stylesheet">
+<link rel="stylesheet" href="../shared/pontoview.css">
+</head>
+<body>
+<div class="pv-ambient" aria-hidden="true"></div>
+<div class="pv-shell" id="shell">
+  <header class="pv-header">
+    <div class="pv-brand"><div class="pv-badge"><span class="material-symbols-outlined">palette</span></div><div class="pv-title">Cultura</div></div>
+    <div class="pv-source"><span class="material-symbols-outlined">museum</span><span>Acervo aberto</span></div>
+  </header>
+  <main class="pv-stage">
+    <section class="pv-copy pv-transition">
+      <div class="pv-kicker" id="category">Cultura brasileira</div>
+      <h1 class="pv-headline" id="title">Arte, memória e identidade</h1>
+      <p class="pv-body" id="text">Carregando conteúdo cultural...</p>
+    </section>
+    <section class="pv-media pv-transition" id="media">
+      <div class="pv-media-fallback"><span class="material-symbols-outlined">gallery_thumbnail</span></div>
+      <img class="pv-image" id="image" alt="">
+      <div class="pv-overlay"><span class="pv-pill">Wikipédia</span><div class="pv-qr hidden" id="qr"><img id="qrImg" alt="QR Code"><div class="pv-qr-copy"><span class="pv-qr-title">Conheça mais</span><span class="pv-qr-hint">Abra o artigo completo</span></div></div></div>
+      <div class="pv-progress"><span id="progress"></span></div>
+    </section>
+  </main>
+  <footer class="pv-footer"><img src="../../assets/logo/pontoview-logo-white.png" alt="PontoView"></footer>
+</div>
+<script src="../shared/pv.js"></script>
+<script>
+const shell=document.getElementById('shell'),titleEl=document.getElementById('title'),textEl=document.getElementById('text'),categoryEl=document.getElementById('category'),media=document.getElementById('media'),image=document.getElementById('image'),qr=document.getElementById('qr'),qrImg=document.getElementById('qrImg'),progress=document.getElementById('progress');
+const ROTATE=28000;let items=[],idx=0,timer=null,stopProgress=null;
+const topics=[
+ ['Tarsila do Amaral','Arte brasileira'],['Candido Portinari','Arte brasileira'],['Aleijadinho','Arte brasileira'],['Anita Malfatti','Arte brasileira'],['Museu de Arte de São Paulo','Museus'],['Museu do Amanhã','Museus'],['Teatro Amazonas','Arquitetura'],['Congresso Nacional do Brasil','Arquitetura'],['Oscar Niemeyer','Arquitetura'],['Bossa nova','Música'],['Samba','Música'],['Choro','Música'],['Cinema do Brasil','Cinema'],['Literatura do Brasil','Literatura'],['Machado de Assis','Literatura'],['Clarice Lispector','Literatura'],['Semana de Arte Moderna','História da arte'],['Festa Junina no Brasil','Cultura popular'],['Carnaval do Brasil','Cultura popular'],['Capoeira','Patrimônio cultural']
+];
+const fallback=[
+ {title:'Arte que atravessa gerações',text:'A cultura brasileira reúne influências indígenas, africanas, europeias e de muitas outras comunidades, formando um patrimônio diverso e em constante transformação.',category:'Cultura brasileira'},
+ {title:'Museus preservam memória e ampliam repertórios',text:'Acervos públicos e privados ajudam a conectar diferentes épocas, linguagens artísticas e experiências coletivas.',category:'Patrimônio cultural'}
+];
+function trim(text){const t=PV.clean(text);return t.length>560?t.slice(0,557).replace(/\s+\S*$/,'')+'…':t}
+async function directData(){
+  const titles=topics.map(x=>x[0]).join('|');
+  const url='https://pt.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts|pageimages|info&exintro=1&explaintext=1&piprop=thumbnail&pithumbsize=1400&inprop=url&redirects=1&titles='+encodeURIComponent(titles);
+  const data=await PV.fetchJSON(url);
+  const categoryMap=new Map(topics.map(x=>[x[0].toLowerCase(),x[1]]));
+  const pages=Object.values(data?.query?.pages||{}).filter(p=>!p.missing).map(p=>({title:PV.clean(p.title),text:trim(p.extract),image:p.thumbnail?.source||'',link:p.fullurl||'',category:categoryMap.get(PV.clean(p.title).toLowerCase())||'Cultura brasileira'})).filter(x=>x.title&&x.text.length>100);
+  for(let i=pages.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pages[i],pages[j]]=[pages[j],pages[i]]}
+  return {items:pages.length?pages:fallback};
+}
+function render(item){
+  categoryEl.textContent=item.category||'Cultura';titleEl.textContent=item.title||'Cultura';textEl.textContent=item.text||'';PV.setImage(image,media,item.image||'');
+  if(item.link){qrImg.src=PV.qrUrl(item.link);qr.classList.remove('hidden');qrImg.onerror=()=>qr.classList.add('hidden')}else{qr.classList.add('hidden');qrImg.removeAttribute('src')}
+}
+function schedule(){clearTimeout(timer);if(stopProgress)stopProgress();stopProgress=PV.startProgress(progress,ROTATE);timer=setTimeout(step,ROTATE)}
+async function step(){if(!items.length)return;await PV.transition(shell,async()=>render(items[idx++%items.length]));schedule()}
+async function load(){
+  try{const data=await PV.fromApi('/api/cultura',directData);items=Array.isArray(data.items)&&data.items.length?data.items:fallback}catch{items=fallback}
+  idx=Math.floor(Math.random()*items.length);render(items[idx++%items.length]);shell.classList.add('is-entering');schedule();
+}
+load();setInterval(async()=>{try{const data=await PV.fromApi('/api/cultura',directData);if(Array.isArray(data.items)&&data.items.length)items=data.items}catch{}},6*60*60*1000);
+</script>
+</body></html>
