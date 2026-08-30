@@ -98,25 +98,47 @@ function latestWorldBank(jsonData){
   return row ? {value:Number(row.value),year:row.date} : null;
 }
 
+function ymd(date){
+  return `${date.getUTCFullYear()}${String(date.getUTCMonth()+1).padStart(2,"0")}${String(date.getUTCDate()).padStart(2,"0")}`;
+}
+
+function latestSolar(jsonData){
+  const values = jsonData?.properties?.parameter?.ALLSKY_SFC_SW_DWN || {};
+  const rows = Object.entries(values)
+    .filter(([,value]) => Number.isFinite(Number(value)) && Number(value) > -900)
+    .sort((a,b) => b[0].localeCompare(a[0]));
+  if(!rows.length) return null;
+  const [date,value] = rows[0];
+  return {value:Number(value),date:`${date.slice(6,8)}/${date.slice(4,6)}/${date.slice(0,4)}`};
+}
+
 async function getSustentabilidade(url){
   const lat = Number(url.searchParams.get("lat") || -15.793889);
   const lon = Number(url.searchParams.get("lon") || -47.882778);
   const city = clean(url.searchParams.get("cidade") || "Brasil");
-  const airUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=us_aqi,pm2_5,pm10&timezone=auto`;
+
+  const end = new Date();
+  end.setUTCDate(end.getUTCDate()-1);
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate()-9);
+
+  const solarUrl = `https://power.larc.nasa.gov/api/temporal/daily/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude=${encodeURIComponent(lon)}&latitude=${encodeURIComponent(lat)}&start=${ymd(start)}&end=${ymd(end)}&format=JSON`;
   const base = "https://api.worldbank.org/v2/country/BR/indicator/";
   const results = await Promise.allSettled([
-    fetchJSON(airUrl,8500,900),
+    fetchJSON(solarUrl,10000,21600),
     fetchJSON(base+"EG.FEC.RNEW.ZS?format=json&per_page=12",8500,43200),
     fetchJSON(base+"AG.LND.FRST.ZS?format=json&per_page=12",8500,43200),
     fetchJSON(base+"EN.ATM.CO2E.PC?format=json&per_page=12",8500,43200)
   ]);
+
   return {
-    ok:results.some(r=>r.status==="fulfilled"),location:city,
-    air:results[0].status==="fulfilled"?results[0].value.current||{}:{},
+    ok:results.some(r=>r.status==="fulfilled"),
+    location:city,
+    solar:results[0].status==="fulfilled"?latestSolar(results[0].value):null,
     renewable:results[1].status==="fulfilled"?latestWorldBank(results[1].value):null,
     forest:results[2].status==="fulfilled"?latestWorldBank(results[2].value):null,
     co2:results[3].status==="fulfilled"?latestWorldBank(results[3].value):null,
-    sources:["Open-Meteo","World Bank"]
+    sources:["NASA POWER","World Bank"]
   };
 }
 
