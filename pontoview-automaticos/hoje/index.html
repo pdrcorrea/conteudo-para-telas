@@ -19,7 +19,7 @@
       <p class="pv-body" id="todayNote"></p>
     </section>
     <section class="pv-cards" id="cards">
-      <article class="pv-card"><div class="pv-card-label">Data especial</div><div class="pv-card-value" id="holiday">Dia comum</div><div class="pv-card-note" id="holidayNote">Sem feriado nacional hoje</div></article>
+      <article class="pv-card"><div class="pv-card-label" id="specialLabel">Data especial</div><div class="pv-card-value" id="holiday">Consultando</div><div class="pv-card-note" id="holidayNote">Buscando o destaque de hoje</div></article>
       <article class="pv-card"><div class="pv-card-label">Estação</div><div class="pv-card-value" id="season">--</div><div class="pv-card-note">Hemisfério Sul</div></article>
       <article class="pv-card"><div class="pv-card-label">Ano em curso</div><div class="pv-card-value" id="dayOfYear">--</div><div class="pv-card-note" id="daysLeft">--</div></article>
       <article class="pv-card"><div class="pv-card-label">Próximo feriado</div><div class="pv-card-value" id="nextHolidayDate">--</div><div class="pv-card-note" id="nextHolidayName">Consultando calendário nacional</div></article>
@@ -29,14 +29,54 @@
 </div>
 <script src="../shared/pv.js"></script>
 <script>
-const els={clock:document.getElementById('clock'),weekday:document.getElementById('weekday'),dateTitle:document.getElementById('dateTitle'),todayNote:document.getElementById('todayNote'),holiday:document.getElementById('holiday'),holidayNote:document.getElementById('holidayNote'),season:document.getElementById('season'),dayOfYear:document.getElementById('dayOfYear'),daysLeft:document.getElementById('daysLeft'),nextHolidayDate:document.getElementById('nextHolidayDate'),nextHolidayName:document.getElementById('nextHolidayName')};
+const els={clock:document.getElementById('clock'),weekday:document.getElementById('weekday'),dateTitle:document.getElementById('dateTitle'),todayNote:document.getElementById('todayNote'),specialLabel:document.getElementById('specialLabel'),holiday:document.getElementById('holiday'),holidayNote:document.getElementById('holidayNote'),season:document.getElementById('season'),dayOfYear:document.getElementById('dayOfYear'),daysLeft:document.getElementById('daysLeft'),nextHolidayDate:document.getElementById('nextHolidayDate'),nextHolidayName:document.getElementById('nextHolidayName')};
 function localYMD(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`}
 function dayOfYear(d){const start=Date.UTC(d.getFullYear(),0,0),current=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());return Math.floor((current-start)/86400000)}
 function season(d){const md=(d.getMonth()+1)*100+d.getDate();if(md>=1221||md<=320)return 'Verão';if(md<=620)return 'Outono';if(md<=922)return 'Inverno';return 'Primavera'}
-async function directData(){const year=new Date().getFullYear();let holidays=[];try{holidays=await PV.fetchJSON(`https://brasilapi.com.br/api/feriados/v1/${year}`)}catch{}return{holidays:Array.isArray(holidays)?holidays:[]}}
-function render(data){const now=new Date(),holidays=Array.isArray(data.holidays)?data.holidays:[],today=localYMD(now),todayHoliday=holidays.find(h=>h.date===today),next=holidays.find(h=>h.date>today),long=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'long',year:'numeric'}).format(now);els.weekday.textContent=PV.titleCase(new Intl.DateTimeFormat('pt-BR',{weekday:'long'}).format(now));els.dateTitle.textContent=PV.titleCase(long);els.todayNote.textContent=todayHoliday?`Hoje é ${todayHoliday.name}.`:'Um novo dia para informar, conectar e fazer acontecer.';els.holiday.textContent=todayHoliday?'Feriado':'Dia comum';els.holidayNote.textContent=todayHoliday?todayHoliday.name:'Sem feriado nacional hoje';els.season.textContent=season(now);const doy=dayOfYear(now),total=dayOfYear(new Date(now.getFullYear(),11,31));els.dayOfYear.textContent=`${doy}º dia`;els.daysLeft.textContent=`${Math.max(0,total-doy)} dias restantes no ano`;if(next){const d=new Date(next.date+'T12:00:00');els.nextHolidayDate.textContent=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'short'}).format(d).replace('.','');els.nextHolidayName.textContent=next.name}else{els.nextHolidayDate.textContent='Novo ano';els.nextHolidayName.textContent='Próximo calendário em breve'}}
+function cleanText(s){return String(s||'').replace(/\[[^\]]*\]/g,'').replace(/\s+/g,' ').replace(/^[-–—•\s]+/,'').trim()}
+function usefulCommemoration(text){const t=text.toLowerCase();const blocked=['santo ','santa ','são ','nossa senhora','igreja','católic','ortodox','litúrg','falecimento','nascimento'];return text.length>=8&&text.length<=110&&!blocked.some(x=>t.includes(x))}
+async function wikipediaCommemoration(now){
+  const day=now.getDate(),month=new Intl.DateTimeFormat('pt-BR',{month:'long'}).format(now).toLowerCase(),page=`${day}_de_${month}`;
+  try{
+    const base='https://pt.wikipedia.org/w/api.php?origin=*&format=json&action=parse';
+    const sections=await fetch(`${base}&page=${encodeURIComponent(page)}&prop=sections`).then(r=>{if(!r.ok)throw new Error();return r.json()});
+    const list=sections?.parse?.sections||[];
+    const target=list.find(s=>/feriados|eventos c[ií]clicos|comemora/i.test(`${s.line||''} ${s.anchor||''}`));
+    if(!target)return null;
+    const parsed=await fetch(`${base}&page=${encodeURIComponent(page)}&prop=text&section=${encodeURIComponent(target.index)}`).then(r=>{if(!r.ok)throw new Error();return r.json()});
+    const html=parsed?.parse?.text?.['*'];if(!html)return null;
+    const doc=new DOMParser().parseFromString(html,'text/html');
+    const items=[...doc.querySelectorAll('li')].map(li=>cleanText(li.textContent)).filter(usefulCommemoration);
+    const preferred=items.find(x=>/Brasil|brasileir|nacional|mundial|internacional|ONU|UNESCO|OMS/i.test(x))||items[0];
+    if(!preferred)return null;
+    return cleanText(preferred.replace(/^Brasil\s*[–—:-]?\s*/i,''));
+  }catch{return null}
+}
+async function directData(){
+  const now=new Date(),year=now.getFullYear();let holidays=[];
+  try{holidays=await PV.fetchJSON(`https://brasilapi.com.br/api/feriados/v1/${year}`)}catch{}
+  const commemorative=await wikipediaCommemoration(now);
+  return{holidays:Array.isArray(holidays)?holidays:[],commemorative};
+}
+function render(data){
+  const now=new Date(),holidays=Array.isArray(data.holidays)?data.holidays:[],today=localYMD(now),todayHoliday=holidays.find(h=>h.date===today),next=holidays.find(h=>h.date>today),commemorative=cleanText(data.commemorative);
+  const long=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'long',year:'numeric'}).format(now);
+  els.weekday.textContent=PV.titleCase(new Intl.DateTimeFormat('pt-BR',{weekday:'long'}).format(now));els.dateTitle.textContent=PV.titleCase(long);
+  if(todayHoliday){els.specialLabel.textContent='Feriado nacional';els.holiday.textContent='Feriado';els.holidayNote.textContent=todayHoliday.name;els.todayNote.textContent=`Hoje é ${todayHoliday.name}.`}
+  else if(commemorative){els.specialLabel.textContent='Hoje é dia de';els.holiday.textContent='Data especial';els.holidayNote.textContent=commemorative;els.todayNote.textContent=`Hoje também é lembrado como ${commemorative}.`}
+  else{els.specialLabel.textContent='Hoje';els.holiday.textContent='Um novo dia';els.holidayNote.textContent='Confira a data e aproveite o dia';els.todayNote.textContent='Um novo dia para informar, conectar e fazer acontecer.'}
+  els.season.textContent=season(now);const doy=dayOfYear(now),total=dayOfYear(new Date(now.getFullYear(),11,31));els.dayOfYear.textContent=`${doy}º dia`;els.daysLeft.textContent=`${Math.max(0,total-doy)} dias restantes no ano`;
+  if(next){const d=new Date(next.date+'T12:00:00');els.nextHolidayDate.textContent=new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'short'}).format(d).replace('.','');els.nextHolidayName.textContent=next.name}else{els.nextHolidayDate.textContent='Novo ano';els.nextHolidayName.textContent='Próximo calendário em breve'}
+}
 function updateClock(){els.clock.textContent=new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit'}).format(new Date())}
-async function load(){try{render(await PV.fromApi('/api/hoje',directData))}catch{render({holidays:[]})}updateClock()}
+async function load(){
+  try{
+    const api=await PV.fromApi('/api/hoje',directData);
+    if(api&&!api.commemorative&&!((api.holidays||[]).find(h=>h.date===localYMD(new Date()))))api.commemorative=await wikipediaCommemoration(new Date());
+    render(api);
+  }catch{render({holidays:[],commemorative:null})}
+  updateClock();
+}
 load();setInterval(updateClock,1000);
 </script>
 </body></html>
